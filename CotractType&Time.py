@@ -1,9 +1,3 @@
-import streamlit as st
-import gspread
-import pandas as pd
-import matplotlib.pyplot as plt
-from google.oauth2.service_account import Credentials
-
 # Authenticate Google Sheets access
 @st.cache_resource
 def get_gspread_client():
