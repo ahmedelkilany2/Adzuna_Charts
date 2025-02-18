@@ -4,8 +4,8 @@ import plotly.express as px
 from datetime import datetime
 
 # Replace this with your actual Google Sheet ID
-SHEET_ID = "1234567890abcdefghijklmnopqrstuvwxyz"
-SHEET_NAME = "Sheet1"
+SHEET_ID = "https://docs.google.com/spreadsheets/d/1VTMPy-dvropKZANZeMJMxfuRmFrAYJ2YFC1kbLznT9Q/edit?gid=553613618#gid=553613618"
+SHEET_NAME = "Adzuna_job_listings"
 
 @st.cache_data(ttl=14400)  # Cache for 4 hours
 def load_data():
