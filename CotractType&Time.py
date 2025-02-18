@@ -2,56 +2,24 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from datetime import datetime
-import time
-from google.oauth2.service_account import Credentials
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
 
-# Configuration
-SHEET_URL = "your_google_sheet_url"
-REFRESH_INTERVAL = 14400  # 4 hours in seconds
+# Replace this with your actual Google Sheet ID
+SHEET_ID = "1234567890abcdefghijklmnopqrstuvwxyz"
+SHEET_NAME = "Sheet1"
 
-# Set up Google Sheets credentials
-@st.cache_resource
-def get_google_credentials():
-    credentials = {
-        "type": "service_account",
-        "project_id": "your-project-id",
-        "private_key_id": "your-private-key-id",
-        "private_key": "your-private-key",
-        "client_email": "your-client-email",
-        "client_id": "your-client-id",
-        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-        "token_uri": "https://oauth2.googleapis.com/token",
-        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-        "client_x509_cert_url": "your-cert-url"
-    }
-    
-    scope = [
-        'https://spreadsheets.google.com/feeds',
-        'https://www.googleapis.com/auth/spreadsheets',
-        'https://www.googleapis.com/auth/drive'
-    ]
-    
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(credentials, scope)
-    return gspread.authorize(creds)
-
-@st.cache_data(ttl=REFRESH_INTERVAL)
+@st.cache_data(ttl=14400)  # Cache for 4 hours
 def load_data():
-    """Load data from Google Sheets with caching"""
+    """Load data from Google Sheets"""
     try:
-        client = get_google_credentials()
-        sheet = client.open_by_url(SHEET_URL).sheet1
-        data = sheet.get_all_records()
-        df = pd.DataFrame(data)
+        url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet={SHEET_NAME}"
+        df = pd.read_csv(url)
         return df, None
     except Exception as e:
         return None, f"Error loading data: {str(e)}"
 
 def plot_contract_distribution(df):
-    """Create contract type distribution visualizations"""
-    # Color scheme
-    colors = {'Permanent': 'blue', 'Contract': 'gray', 'Temporary': 'red'}
+    """Create visualizations for contract type distribution"""
+    colors = {'Permanent': '#1f77b4', 'Contract': '#7f7f7f', 'Temporary': '#d62728'}
     
     # Bar Chart
     contract_counts = df['contract_type'].value_counts()
@@ -65,13 +33,8 @@ def plot_contract_distribution(df):
         color_discrete_map=colors
     )
     
-    # Customize bar chart
     fig_bar.update_traces(textposition='outside')
-    fig_bar.update_layout(
-        showlegend=False,
-        plot_bgcolor='white',
-        title_x=0.5
-    )
+    fig_bar.update_layout(showlegend=False)
     
     # Pie Chart
     fig_pie = px.pie(
@@ -82,37 +45,19 @@ def plot_contract_distribution(df):
         color_discrete_map=colors
     )
     
-    # Customize pie chart
     fig_pie.update_traces(textposition='inside', textinfo='percent+label')
-    fig_pie.update_layout(title_x=0.5)
     
     return fig_bar, fig_pie
 
-def calculate_statistics(df):
-    """Calculate key statistics from the data"""
-    total_jobs = len(df)
-    contract_stats = df['contract_type'].value_counts()
-    contract_percentages = (contract_stats / total_jobs * 100).round(1)
-    
-    return {
-        'total_jobs': total_jobs,
-        'most_common_type': contract_stats.index[0],
-        'most_common_count': contract_stats.iloc[0],
-        'most_common_percentage': contract_percentages.iloc[0]
-    }
-
 def main():
-    st.set_page_config(
-        page_title="Job Market Analysis Dashboard",
-        page_icon="📊",
-        layout="wide"
-    )
+    st.set_page_config(page_title="Job Market Analysis", layout="wide")
     
-    st.title('📊 Job Market Analysis Dashboard')
+    st.title('Job Market Analysis Dashboard')
+    st.write('Analysis of job postings by contract type')
     
-    # Add last update time
-    st.sidebar.write("Last updated:", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-    st.sidebar.write("Data refreshes every 4 hours automatically")
+    # Add refresh time indicator
+    st.sidebar.write(f"Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    st.sidebar.write("Data refreshes automatically every 4 hours")
     
     # Load data
     df, error = load_data()
@@ -120,45 +65,39 @@ def main():
     if error:
         st.error(error)
         return
-    
+        
     if df is None or df.empty:
         st.warning("No data available")
         return
     
-    # Create metrics row
-    stats = calculate_statistics(df)
+    # Display summary metrics
+    total_jobs = len(df)
+    contract_distribution = df['contract_type'].value_counts()
+    
     col1, col2, col3 = st.columns(3)
-    
     with col1:
-        st.metric("Total Job Postings", stats['total_jobs'])
+        st.metric("Total Job Postings", total_jobs)
     with col2:
-        st.metric("Most Common Type", stats['most_common_type'])
+        st.metric("Most Common Type", contract_distribution.index[0])
     with col3:
-        st.metric(
-            "Percentage of Most Common",
-            f"{stats['most_common_percentage']}%"
-        )
+        percentage = (contract_distribution.iloc[0] / total_jobs * 100).round(1)
+        st.metric("% of Most Common Type", f"{percentage}%")
     
-    # Create visualization row
+    # Create visualizations
     st.subheader("Contract Type Distribution")
     viz_col1, viz_col2 = st.columns(2)
     
-    # Generate plots
     bar_fig, pie_fig = plot_contract_distribution(df)
     
-    # Display plots
     with viz_col1:
         st.plotly_chart(bar_fig, use_container_width=True)
     
     with viz_col2:
         st.plotly_chart(pie_fig, use_container_width=True)
     
-    # Add detailed data table
-    st.subheader("Detailed Data")
-    st.dataframe(
-        df.style.background_gradient(subset=['salary_min', 'salary_max']),
-        use_container_width=True
-    )
+    # Display data table
+    st.subheader("Raw Data")
+    st.dataframe(df, use_container_width=True)
 
 if __name__ == '__main__':
     main()
