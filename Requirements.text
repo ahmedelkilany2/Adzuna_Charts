@@ -1,3 +1,9 @@
-streamlit
+gspread
 pandas
-plotly
+matplotlib
+seaborn
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+google-auth-transport-requests
+oauth2client
