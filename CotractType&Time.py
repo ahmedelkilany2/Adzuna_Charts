@@ -1,24 +1,8 @@
-import subprocess
-import sys
-
-# Install required libraries
-def install(package):
-    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-
-# Ensure all dependencies are installed
-packages = ["matplotlib", "seaborn", "pandas", "gspread", "oauth2client"]
-for package in packages:
-    try:
-        __import__(package)
-    except ImportError:
-        install(package)
-
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
-
 import pandas as pd
 import matplotlib.pyplot as plt
 
